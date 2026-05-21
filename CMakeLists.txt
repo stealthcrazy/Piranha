@@ -3,4 +3,6 @@ project(Piranha)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(Piranha main.cpp)
+add_executable(Piranha Src/main.cpp
+        Src/tensor.cpp
+        include/tensor.hpp)
