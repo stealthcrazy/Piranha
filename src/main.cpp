@@ -4,7 +4,9 @@
 int main() {
     std::cout << "Hello, World!" << std::endl;
 
-    Piranha::Tensor<float, 4,3,2> te;
-    std::cout << "Bye, World!" << te[3][1][3].value() <<std::endl;
+    Piranha::Tensor<float, 3,3> te({1,2,3,4,5,6,7,8,9});
+    std::cout << "Bye, World!" << te[2].value() <<std::endl;
+
+
     return 0;
 }

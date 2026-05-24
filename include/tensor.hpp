@@ -5,11 +5,9 @@
 #include <ostream>
 #include <string>
 #include <cassert>
+#include <memory>
 
 namespace Piranha {
-
-
-
 
     template <typename T, size_t m , size_t ... n >
     class Tensor {
@@ -18,47 +16,44 @@ namespace Piranha {
             friend class Tensor;
             static constexpr int total = ( M*... );
             std::array<T,total > obj;
-            TensorCore() {
-                for (int i = 0; i < total; i++) {
-                    obj[i] = i;
-                }
+            TensorCore() : obj{0} {}
+            TensorCore(std::array<U,total> a) {
+                std::copy(a.begin(),a.end(),obj.begin());
             }
-            TensorCore(std::initializer_list<U> a) : obj{a.begin(),a.end(),obj.begin()} {};
-            TensorCore(TensorCore&& c) :obj{std::move(c.obj)} {};
+            TensorCore(TensorCore&& c)  noexcept :obj{std::move(c.obj)} {};
             T* at(size_t i){return &obj[i];}
             T& valueAt(size_t i ){return obj[i];}
 
         };
-        TensorCore<T,m,n...> *core;
+        std::shared_ptr<TensorCore<T,m,n...>> core;
         struct Data {
             T* start;
-            size_t dim;
+            size_t depth;
             size_t stride;
         };
         Data c;
-        Tensor(T* start, size_t dim , size_t stride, TensorCore<T,m,n...> *C) : c{start,dim,stride} , core{C} {};
+        Tensor(T* start, size_t dim , size_t stride, std::shared_ptr<TensorCore<T,m,n...>> C) : core{C} , c{start,dim,stride} {};
     public:
         static  constexpr std::array<size_t, sizeof ...(n)+1> shape = {m,n...};
         static constexpr int size = ( m*...*n );
         Tensor() : core{new TensorCore<T, m, n...>()}, c{core->at(0),  0 , size} {};
-        Tensor(std::initializer_list<T> t) {
+        Tensor(std::array<T,size> t): core{new TensorCore<T, m, n...>(t)} , c{core->at(0),  0 , size} {
             if (t.size()!= size) {
                 std::cerr << "\n >> Mismatch when declaring Tensor " << std::endl;
                 exit(1);
             }
-            core = new TensorCore<T, m, n...>(t);
-            c(core->at(0),  0 , size);
         }
 
         Tensor operator[](size_t index) {
-            size_t stride = c.stride/ shape[c.dim];
-            if ( index > stride ) {
-                std::cerr << "\n>> Index Error " << index << " out of bounds for dim " << stride +1 << std::endl;
+            size_t stride = c.stride/ shape[c.depth];
+            if ( index >= shape[c.depth] ) {
+                std::cerr << "\n>> Index Error " << index << " out of bounds for dim " << stride +1 << "For Piranha_Tensor@" << core.get() << std::endl;
                 exit(1);
             }
-            return Tensor((stride * index)+ c.start ,c.dim+1,stride,core);
+            return Tensor((stride * index)+ c.start ,c.depth+1,stride,core);
         }
         T& value() {return *c.start;}
+
         /*
         friend std::ostream& operator<<(std::ostream& os, const Tensor& t) {
             for (int i = 0; i<size;i++) {
