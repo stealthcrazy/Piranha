@@ -9,9 +9,9 @@
 
 namespace Piranha {
 
-    template <typename T, size_t m , size_t ... n >
+    template <typename T, size_t m , size_t ... n > // Tensor class acts as proxy for access
     class Tensor {
-        template <typename U, size_t ... M>
+        template <typename U, size_t ... M> // Tersor Core class -> stores the data in memory
         class TensorCore {
             friend class Tensor;
             static constexpr int total = ( M*... );
@@ -25,8 +25,8 @@ namespace Piranha {
             T& valueAt(size_t i ){return obj[i];}
 
         };
-        std::shared_ptr<TensorCore<T,m,n...>> core;
-        struct Data {
+        std::shared_ptr<TensorCore<T,m,n...>> core; // shared ptr for ref counting
+        struct Data { // stores accessible data params for Proxy
             T* start;
             size_t depth;
             size_t stride;
@@ -43,16 +43,39 @@ namespace Piranha {
                 exit(1);
             }
         }
+        ~Tensor(){} // destructor
 
-        Tensor operator[](size_t index) {
+
+        T& value() {return *c.start;}//returns value
+        // start operators on Tensor
+
+        Tensor operator[](size_t index) { // indexing operator
             size_t stride = c.stride/ shape[c.depth];
             if ( index >= shape[c.depth] ) {
                 std::cerr << "\n>> Index Error " << index << " out of bounds for dim " << stride +1 << "For Piranha_Tensor@" << core.get() << std::endl;
                 exit(1);
             }
-            return Tensor((stride * index)+ c.start ,c.depth+1,stride,core);
+            return Tensor((stride * index)+ c.start ,c.depth+1,stride,core); // creates new proxy with updated data
         }
-        T& value() {return *c.start;}
+
+
+        Tensor operator+(){}
+        Tensor operator-(){}
+        Tensor inv(){}
+        Tensor operator*(){}
+        Tensor dot(){}
+        Tensor scale(){}
+        Tensor reshape(){}
+        Tensor transpose(){}
+
+        // end  of operators
+
+        Tensor arange(){}
+        Tensor ones(){}
+        Tensor diag(){}
+
+
+
 
         /*
         friend std::ostream& operator<<(std::ostream& os, const Tensor& t) {
