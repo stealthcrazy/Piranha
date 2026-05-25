@@ -2,52 +2,61 @@
 #define PIRANHA_TENSOR_HPP
 
 #include <array>
+#include <vector>
 #include <ostream>
 #include <string>
 #include <cassert>
 #include <memory>
+#include <numeric>
+#include <algorithm>
 
 namespace Piranha {
 
-    template <typename T, size_t m , size_t ... n > // Tensor class acts as proxy for access
-    class Tensor {
-        template <typename U, size_t ... M> // Tersor Core class -> stores the data in memory
-        class TensorCore {
-            friend class Tensor;
-            static constexpr int total = ( M*... );
-            std::array<T,total > obj;
-            TensorCore() : obj{0} {}
-            TensorCore(std::array<U,total> a) {
-                std::copy(a.begin(),a.end(),obj.begin());
-            }
-            TensorCore(TensorCore&& c)  noexcept :obj{std::move(c.obj)} {};
-            T* at(size_t i){return &obj[i];}
-            T& valueAt(size_t i ){return obj[i];}
+    template <typename T> // Tensor Core class -> stores the data in memory
+    class TensorCore {
+    public: // make this protected
+        std::vector<T> obj;
+        TensorCore(std::vector<size_t> dims , std::vector<T> v) {
+            const size_t size = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<size_t>());
+            obj =v;
+        }
+        T* at(size_t i){return &obj[i];}
+        T& valueAt(size_t i ){return obj[i];}
 
+    };
+
+
+
+    template <typename T> // Tensor class acts as proxy for access
+    class Tensor {
+        Tensor(T* start, size_t depth , size_t stride, std::shared_ptr<TensorCore<T>> C,std::vector<size_t> dims) : core{C} , c{start,depth,stride} {
+            shape = dims;
         };
-        std::shared_ptr<TensorCore<T,m,n...>> core; // shared ptr for ref counting
+    public:
+        std::shared_ptr<TensorCore<T>> core; // shared ptr for ref counting
         struct Data { // stores accessible data params for Proxy
             T* start;
             size_t depth;
             size_t stride;
         };
         Data c;
-        Tensor(T* start, size_t dim , size_t stride, std::shared_ptr<TensorCore<T,m,n...>> C) : core{C} , c{start,dim,stride} {};
-    public:
-        static  constexpr std::array<size_t, sizeof ...(n)+1> shape = {m,n...};
-        static constexpr int size = ( m*...*n );
-        Tensor() : core{new TensorCore<T, m, n...>()}, c{core->at(0),  0 , size} {};
-        Tensor(std::array<T,size> t): core{new TensorCore<T, m, n...>(t)} , c{core->at(0),  0 , size} {
+        std::vector<size_t> shape;
+        size_t size;
+        Tensor(std::vector<size_t> dims,  std::vector<T> t): core{new TensorCore<T>(dims,t)}{
+            size = std::accumulate(dims.begin(),dims.end(),1,std::multiplies<size_t>());
             if (t.size()!= size) {
                 std::cerr << "\n >> Mismatch when declaring Tensor " << std::endl;
                 exit(1);
             }
+            c = {core->at(0),  0 , size};
+            shape = dims;
         }
         ~Tensor(){} // destructor
 
 
         T& value() {return *c.start;}//returns value
         // start operators on Tensor
+
 
         Tensor operator[](size_t index) { // indexing operator
             size_t stride = c.stride/ shape[c.depth];
@@ -58,8 +67,22 @@ namespace Piranha {
             return Tensor((stride * index)+ c.start ,c.depth+1,stride,core); // creates new proxy with updated data
         }
 
+        template <typename U, size_t M , size_t ... N >
+        Tensor operator+(Tensor<U> r) {
+            if ( ! [](std::is_same<T,U> t){}) {
+                std::cerr << "Type Mismatch";
+            }
+            if (!(std::equal(shape.begin(),shape.end(),r.shape.begin()) & (c.depth == r.c.depth) &  (c.stride == r.c.stride))) {
+                std::cerr << "Mismatch in dimensions for Add";
+                exit(1);
+            }
+            std::array<T,c.stride> buff{0};
+            for (int i = 0; i< c.stride ; i++ ) {
+                buff[i] = core.at(i) + r.core.at(i);
+            }
 
-        Tensor operator+(){}
+            return Tensor<T>();
+        }
         Tensor operator-(){}
         Tensor inv(){}
         Tensor operator*(){}
@@ -86,6 +109,8 @@ namespace Piranha {
         }*/
     };
 
+
 } // namespace Piranha
+
 
 #endif
