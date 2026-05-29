@@ -39,7 +39,7 @@ namespace Piranha {
 
         };
 
-        std::vector<T> mult(Tensor a , Tensor b) {
+        static std::vector<T> mult(Tensor a , Tensor b) {
             std::vector<T> buff;
             for (int i = 0; i < a.shape[0] ; i++) {
                 for (int j = 0; j < b.shape[1]; j++) {
@@ -52,6 +52,33 @@ namespace Piranha {
             }
             return buff;
         }
+
+        static Tensor matMul3D(Tensor a, Tensor b) {
+            if (a.shape.at(2) != b.shape.at(1) ) { // needs fixes as in only hard coded to 2D
+                std::cerr << "Mismatch in dimensions ";
+                exit(1);
+            }
+            std::vector<size_t> s = a.shape;
+            s[s.size()-2] = b.shape[s.size()-1];
+            std::vector<T> buff;
+            for (int i  = 0 ; i < a.shape[0] ; i++) {
+                std::vector<T> temp = Tensor::mult(a[i] ,b[i] );
+                buff.insert(buff.begin(),std::make_move_iterator(temp.begin()),std::make_move_iterator(temp.end()) );
+            }
+            return Tensor(s,buff);
+        }
+        static Tensor matMul2D(Tensor a, Tensor b) {
+            if (a.shape.at(1) != b.shape.at(0) ) {
+                std::cerr << "Mismatch in dimensions ";
+                exit(1);
+            }
+            std::vector<size_t> s = a.shape;
+            s[s.size()-2] = b.shape[s.size()-1];
+            std::vector<T> buff = Tensor::mult(a ,b );
+            return Tensor(s,buff);
+        }
+
+
     public:
         std::shared_ptr<TensorCore<T>> core; // shared ptr for ref counting
         struct Data { // stores accessible data params for Proxy
@@ -91,7 +118,7 @@ namespace Piranha {
                 std::cerr << "Mismatch in dimensions for Add";
                 exit(1);
             }
-            std::vector<T> buff(c.stride);
+            std::vector<T> buff;
             for (int i = 0; i< c.stride ; i++ ) {
                 buff.push_back(*(core->at(i)) + *(r.core->at(i)));
             }
@@ -102,7 +129,7 @@ namespace Piranha {
                 std::cerr << "Mismatch in dimensions for Sub";
                 exit(1);
             }
-            std::vector<T> buff(c.stride);
+            std::vector<T> buff;
             for (int i = 0; i< c.stride ; i++ ) {
                 buff.push_back(*(core->at(i)) - *(r.core->at(i)));
             }
@@ -114,33 +141,54 @@ namespace Piranha {
                 std::cerr << "Mismatch in dimensions for Element-wise Multiplication";
                 exit(1);
             }
-            std::vector<T> buff(c.stride);
+            std::vector<T> buff;
             for (int i = 0; i< c.stride ; i++ ) {
                 buff.push_back(*(core->at(i)) * *(r.core->at(i)));
             }
             return Tensor<T>(shape,buff);
         }
 
-        Tensor operator&(Tensor r){ // currently supports 2D & 3D tensors only ( Matmul )
-            if (!(std::equal(shape.begin(),shape.end(),r.shape.begin())  &  (c.stride == r.c.stride))) { // needs fixes as in only hard coded to 2D
+        Tensor operator&(Tensor r){ // currently supports 2D & 3D tensors only ( Matmul ) // needs better handling
+            if (shape.size() != r.shape.size() ) {
                 std::cerr << "Mismatch in dimensions ";
                 exit(1);
             }
-
-            std::vector<size_t> s = shape;
-            s[s.size()-2] = r.shape[s.size()-1];
-            std::vector<T> buff;
-            for (int i  = 0 ; i < 1 ; i++) { // needs fixes as in only hard coded to 2D
-                std::vector<T> temp = mult((*this)[i] ,r[i] );
-                buff.insert(buff.begin(),std::make_move_iterator(temp.begin()),std::make_move_iterator(temp.end()) );
+            switch (shape.size()) { // needs better handling for size
+                case 3 :
+                    return Tensor::matMul3D(*this, r);
+                case 2 :
+                    return Tensor::matMul2D(*this, r);
+                default:
+                    std::cerr << "Hmm Not Defined";
+                    exit(1);
             }
-
-            return Tensor<T>(s,buff);
         }
 
         Tensor scale(){}
-        Tensor reshape(){}
-        Tensor transpose(){}
+
+        Tensor reshape(std::vector<size_t> dims) {
+            size_t ns = std::accumulate(dims.begin(),dims.end(),1,std::multiplies<size_t>());
+            if (ns != size) {
+                std::cerr << "Not able to reshape "; // needs better error message
+                exit(1);
+            }
+            shape = dims;
+        }
+        Tensor transpose() { // exchanges the 2D dimensions eg 3 2 1 -> 3 1 2
+            size_t n = shape.size();
+            size_t t = shape.at(n-1);
+            shape.at(n-1) = shape.at(n-2);
+            shape.at(n-2) = t;
+            return *this;
+        }
+        Tensor mtranspose(const size_t dim0 , const size_t dim1) { // exchanges the dim1 and dim0 dimensions
+            size_t n = shape.size();
+            size_t t = shape.at(n-1-dim0);
+            shape.at(n-1) = shape.at(n-1-dim1);
+            shape.at(n-1-dim1) = t;
+            return *this;
+        }
+        Tensor permute(){}
 
         // end  of operators
 
