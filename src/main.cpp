@@ -1,13 +1,19 @@
 #include <iostream>
 #include "../include/tensor.hpp"
+#include "../include/Node.hpp"
 
+using namespace  Piranha;
 int main() {
     std::cout << "Hello, World!" << std::endl;
 
-    Piranha::Tensor<float> t1 = Piranha::Tensor<float>::ones({1,3,3});
-    Piranha::Tensor<float> t2 = Piranha::Tensor<float>::all({1,3,3},2);
+    std::shared_ptr<Tensor<float>> a =    std::make_shared<Tensor<float>>(Tensor<float>::all({3,3},1));
+    std::shared_ptr<Tensor<float>> b =    std::make_shared<Tensor<float>>(Tensor<float>::all({3,3},2));
 
-    std::cout << (t1+t2)[0][1][2].value();
+    AddN<float> A({}, a,b);
+
+    for (int i = 0; i<10;i++) {
+        continue;
+    }
 
     return 0;
 }

@@ -5,4 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(Piranha Src/main.cpp
         Src/tensor.cpp
-        include/tensor.hpp)
+        include/tensor.hpp
+        include/Node.hpp
+)

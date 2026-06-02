@@ -8,6 +8,7 @@
 #include <cassert>
 #include <numeric>
 #include <algorithm>
+#include <memory>
 
 namespace Piranha {
 
@@ -88,6 +89,8 @@ namespace Piranha {
         Data c;
         std::vector<size_t> shape;
         size_t size;
+        bool req_grad = true;
+
         Tensor(std::vector<size_t> dims,  std::vector<T> t): core{new TensorCore<T>(dims,t)}{
             size = std::accumulate(dims.begin(),dims.end(),1,std::multiplies<size_t>());
             if (t.size()!= size) {
