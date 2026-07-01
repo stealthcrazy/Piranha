@@ -25,8 +25,6 @@ namespace Piranha {
 
     };
 
-
-
     template <typename T> // Tensor class acts as proxy for access
     class Tensor {
         Tensor(T* start,
@@ -56,7 +54,7 @@ namespace Piranha {
 
         static Tensor matMul3D(Tensor a, Tensor b) {
             if (a.shape.at(2) != b.shape.at(1) ) { // needs fixes as in only hard coded to 2D
-                std::cerr << "Mismatch in dimensions ";
+                std::cerr << "Mismatch in dimensions 3D";
                 exit(1);
             }
             std::vector<size_t> s = a.shape;
@@ -69,12 +67,13 @@ namespace Piranha {
             return Tensor(s,buff);
         }
         static Tensor matMul2D(Tensor a, Tensor b) {
+            std::cout << a.shape.at(1) << " " << b.shape.at(0);
             if (a.shape.at(1) != b.shape.at(0) ) {
-                std::cerr << "Mismatch in dimensions ";
+                std::cerr << "Mismatch in dimensions 2D ";
                 exit(1);
             }
             std::vector<size_t> s = a.shape;
-            s[s.size()-2] = b.shape[s.size()-1];
+            s[s.size()-1] = b.shape[s.size()-1];
             std::vector<T> buff = Tensor::mult(a ,b );
             return Tensor(s,buff);
         }
@@ -90,6 +89,7 @@ namespace Piranha {
         std::vector<size_t> shape;
         size_t size;
         bool req_grad = true;
+        std::shared_ptr<Tensor> grad;
 
         Tensor(std::vector<size_t> dims,  std::vector<T> t): core{new TensorCore<T>(dims,t)}{
             size = std::accumulate(dims.begin(),dims.end(),1,std::multiplies<size_t>());
@@ -100,7 +100,8 @@ namespace Piranha {
             c = {core->at(0), size};
             shape = dims;
         }
-        ~Tensor(){} // destructor
+        ~Tensor() {} // destructor
+
 
 
         T& value() {return *c.start;}//returns value
