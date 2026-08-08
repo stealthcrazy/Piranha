@@ -8,28 +8,58 @@
 using namespace Piranha;
 
 
-Core::Core(std::shared_ptr<Storage> Storage_, std::vector<int64_t> Shape_, DType Type_) : Shape(std::move(Shape_)), Type(Type_) {
+
+
+
+Core::Core(std::shared_ptr<Storage> Storage_, std::vector<int64_t> Shape_, std::vector<int64_t> Stride_ , const DType Type_, const int64_t Offset_)
+: Shape(std::move(Shape_)),Stride(std::move(Stride_)), Type(Type_), Offset(Offset_)
+{
     Size = std::accumulate(Shape.begin(),Shape.end(),int64_t{1},std::multiplies<>());
     int64_t acc = 1;
     for (int64_t d : Shape)
         if (d < 0) throw std::invalid_argument("negative dimension");
     Stride.resize(Shape.size());
-    for (int64_t d = static_cast<int64_t>(Shape.size()) - 1; d >= 0; --d) {
-        Stride[d] = acc;
-        acc *= Shape[d];
-    }
     CoreStorage = std::move(Storage_);
+    contiguous = is_contiguous();
 }
 
-Core::Core(std::vector<int64_t> Shape_, DType Type_ ) : Shape(std::move(Shape_)), Type(Type_) {
+Core::Core(std::vector<int64_t> Shape_, const DType Type_ ) : Shape(std::move(Shape_)), Type(Type_) {
     Size = std::accumulate(Shape.begin(),Shape.end(),int64_t{1},std::multiplies<>());
-    int64_t acc = 1;
     for (int64_t d : Shape)
         if (d < 0) throw std::invalid_argument("negative dimension");
-    Stride.resize(Shape.size());
-    for (int64_t d = static_cast<int64_t>(Shape.size()) - 1; d >= 0; --d) {
-        Stride[d] = acc;
+    Stride = std::move(getContiguousStrides(Shape));
+    CoreStorage = std::make_shared<Storage>(Size*itemSize(Type_));
+}
+
+
+bool Core::is_contiguous() const {
+    int64_t acc = 1;
+    for (int64_t d = dim() - 1; d >= 0; --d) {
+        if (Stride[d] != acc) return false;
         acc *= Shape[d];
     }
-    CoreStorage = std::make_shared<Storage>(Size*itemSize(Type_));
+    return true;
+
+}
+
+std::vector<int64_t> Core::getContiguousStrides(std::vector<int64_t> &shape) {
+    std::vector<int64_t> Stride;
+    int64_t acc = 1;
+    Stride.resize(shape.size());
+    for (int64_t d = static_cast<int64_t>(shape.size()) - 1; d >= 0; --d) {
+        Stride[d] = acc;
+        acc *= shape[d];
+    }
+    return Stride;
+}
+
+void Core::all(int64_t t) {
+    switch (Type){
+        FORALL_PIR_DTYPES(TYPE_ENTRY_CASE,[&]{
+            auto* buffer = static_cast<concrete_type*>(CoreStorage->data());
+            for (int64_t i = 0; i < Size; ++i) {
+                buffer[i] = static_cast<concrete_type>(t);
+            }
+        })
+    }
 }

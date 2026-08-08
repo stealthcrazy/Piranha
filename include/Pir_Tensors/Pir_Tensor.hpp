@@ -23,6 +23,12 @@ namespace  Piranha {
         DType type() const {return Impl->type();}
 
         Tensor Reshape(std::vector<int64_t> shape_) const;
+        Tensor transpose() const;
+        Tensor permute(const std::vector<int64_t>& order) const;
+        void all(int64_t v) const;
+        Tensor operator[](int64_t i) ;
+
+
 
     private:
         std::shared_ptr<Core> Impl;

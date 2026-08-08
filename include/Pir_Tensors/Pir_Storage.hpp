@@ -21,6 +21,9 @@ namespace Piranha {
         Storage(const Storage& ) = delete; // no copy
         Storage& operator=(const Storage&) = delete; // no copy assignment
 
+        void* data();
+        int64_t getBytes();
+
     private:
         int64_t bytes = 0;
         void* storage_buffer = nullptr;
