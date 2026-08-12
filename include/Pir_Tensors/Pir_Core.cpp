@@ -2,8 +2,10 @@
 // Created by Sohan Prabhu on 06/08/2026.
 //
 #include "Pir_Core.hpp"
-
+#include <iostream>
 #include <utility>
+
+#include "Pir_Iterator.hpp"
 
 using namespace Piranha;
 
@@ -29,6 +31,7 @@ Core::Core(std::vector<int64_t> Shape_, const DType Type_ ) : Shape(std::move(Sh
         if (d < 0) throw std::invalid_argument("negative dimension");
     Stride = std::move(getContiguousStrides(Shape));
     CoreStorage = std::make_shared<Storage>(Size*itemSize(Type_));
+    contiguous = is_contiguous();
 }
 
 
@@ -53,13 +56,14 @@ std::vector<int64_t> Core::getContiguousStrides(std::vector<int64_t> &shape) {
     return Stride;
 }
 
-void Core::all(int64_t t) {
+void Core::all(float t) {
     switch (Type){
+
         FORALL_PIR_DTYPES(TYPE_ENTRY_CASE,[&]{
-            auto* buffer = static_cast<concrete_type*>(CoreStorage->data());
-            for (int64_t i = 0; i < Size; ++i) {
-                buffer[i] = static_cast<concrete_type>(t);
-            }
+            Piranaha::for_each(Shape,{Stride},{Offset},[&]( const std::vector<int64_t>& ips) {
+                auto* buffer = static_cast<concrete_type*>(CoreStorage->data());
+                buffer[ips[0]] = t;
+            });
         })
     }
 }

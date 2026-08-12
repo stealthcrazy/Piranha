@@ -55,6 +55,6 @@ Tensor Tensor::operator[](int64_t i) {
     return  Tensor( std::make_shared<Core>(Impl->CoreStorage,new_shape,new_stride,Impl->type(),new_offset));
 }
 
-void Tensor::all(int64_t v) const {
+void Tensor::all(float v) const {
     Impl->all(v);
 }

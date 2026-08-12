@@ -35,7 +35,7 @@ namespace Piranha {
         static std::vector<int64_t> getContiguousStrides(std::vector<int64_t> &shape);
 
         bool is_contiguous() const;
-        void all(int64_t t) ;
+        void all(float t) ;
 
 
     private:
@@ -47,7 +47,7 @@ namespace Piranha {
         int64_t Size = 0;
         DType Type = DType::Float32;
         std::shared_ptr<Storage> CoreStorage;
-        bool contiguous = true;
+        bool contiguous;
 
     };
 

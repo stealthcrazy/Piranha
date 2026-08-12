@@ -8,5 +8,6 @@ int main() {
 
     Tensor t = Tensor({3,3},DType::Float32);
     Tensor b = t[1][1];
+    t.transpose().all(1);
     return 0;
 }
