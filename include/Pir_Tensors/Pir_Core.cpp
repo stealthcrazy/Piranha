@@ -20,7 +20,7 @@ Core::Core(std::shared_ptr<Storage> Storage_, std::vector<int64_t> Shape_, std::
     int64_t acc = 1;
     for (int64_t d : Shape)
         if (d < 0) throw std::invalid_argument("negative dimension");
-    Stride.resize(Shape.size());
+    //Stride.resize(Shape.size());
     CoreStorage = std::move(Storage_);
     contiguous = is_contiguous();
 }
@@ -38,6 +38,7 @@ Core::Core(std::vector<int64_t> Shape_, const DType Type_ ) : Shape(std::move(Sh
 bool Core::is_contiguous() const {
     int64_t acc = 1;
     for (int64_t d = dim() - 1; d >= 0; --d) {
+        if (Shape[d] == 1) continue;
         if (Stride[d] != acc) return false;
         acc *= Shape[d];
     }
@@ -46,9 +47,8 @@ bool Core::is_contiguous() const {
 }
 
 std::vector<int64_t> Core::getContiguousStrides(std::vector<int64_t> &shape) {
-    std::vector<int64_t> Stride;
+    std::vector<int64_t> Stride(shape.size(),0);
     int64_t acc = 1;
-    Stride.resize(shape.size());
     for (int64_t d = static_cast<int64_t>(shape.size()) - 1; d >= 0; --d) {
         Stride[d] = acc;
         acc *= shape[d];
@@ -58,12 +58,44 @@ std::vector<int64_t> Core::getContiguousStrides(std::vector<int64_t> &shape) {
 
 void Core::all(float t) {
     switch (Type){
-
         FORALL_PIR_DTYPES(TYPE_ENTRY_CASE,[&]{
+            auto* buffer = static_cast<concrete_type*>(CoreStorage->data());
             Piranaha::for_each(Shape,{Stride},{Offset},[&]( const std::vector<int64_t>& ips) {
-                auto* buffer = static_cast<concrete_type*>(CoreStorage->data());
                 buffer[ips[0]] = t;
             });
         })
     }
+}
+
+void Core::raw_dump() {
+    std::cout << "[ ";
+    switch (Type){
+        FORALL_PIR_DTYPES(TYPE_ENTRY_CASE,[&]{
+            auto* buffer = static_cast<concrete_type*>(CoreStorage->data());
+            Piranaha::for_each(Shape,{Stride},{Offset},[&]( const std::vector<int64_t>& ips) {
+                std::cout <<  buffer[ips[0]] << ", ";
+            });
+        })
+    }
+    std::cout << "]" << std::endl;
+}
+
+std::shared_ptr<Core> Core::make_contiguous() {
+    std::shared_ptr<Core> contig_Core = std::make_shared<Core>(Shape,Type);
+    switch (Type) {
+        FORALL_PIR_DTYPES(TYPE_ENTRY_CASE,[&] {
+            auto* buffer_old = static_cast<concrete_type*>(getStorage()->data());
+            auto* buffer_new = static_cast<concrete_type*>(contig_Core->getStorage()->data());
+            Piranaha::for_each(Shape,
+                {stride(),contig_Core->stride()},
+                {Offset,contig_Core->offset()},
+                [&]( const std::vector<int64_t>& ips) {
+                    buffer_new[ips[1]] = buffer_old[ips[0]] ;
+            });
+
+
+        });
+
+    }
+    return contig_Core;
 }

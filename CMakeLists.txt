@@ -14,4 +14,6 @@ add_executable(Piranha src/main.cpp
         include/Pir_Tensors/Pir_binOps.hpp
         include/Pir_Tensors/Pir_Storage.cpp
         include/Pir_Tensors/Pir_Iterator.hpp
+        include/Pir_Tensors/Pir_Functional.cpp
+        include/Pir_Tensors/Pir_Functional.hpp
 )

@@ -25,8 +25,6 @@ namespace Piranaha {
         if (Size == 0) return ;
 
         for (int i = 0 ; i < Size ; i++) {
-            for (auto i: ips)
-                std::cout << (i+1) << ' ';
             f(ips); // apply the function f on the positions
             for (int d = dim-1 ; d >=0 ; --d) { // walk throught the dimensions
                 for (int p = 0; p < n; p++) ips[p] += stride[p][d]; // incr the positions by applying stides
