@@ -1,13 +1,25 @@
 #include <iostream>
-#include "../include/tensor.hpp"
+#include "../include/Pir_Tensors/Pir_Core.hpp"
+#include "../include/Pir_Tensors/Pir_Tensor.hpp"
+#include "../include/Pir_Tensors/Pir_binOps.hpp"
+#include "../include/Pir_Tensors/Pir_Functional.hpp"
+#include <iostream>
 
+using namespace  Piranha;
 int main() {
     std::cout << "Hello, World!" << std::endl;
 
-    Piranha::Tensor<float> t1 = Piranha::Tensor<float>::ones({1,3,3});
-    Piranha::Tensor<float> t2 = Piranha::Tensor<float>::all({1,3,3},2);
+    Tensor t = Tensor({3,3},DType::Float32);
+    t.all(3);
+    Tensor a = Tensor({3,3},DType::Float32);
 
-    std::cout << (t1+t2)[0][1][2].value();
+    a.all(2);
+
+    Tensor b = tmm(t,a);
+    for (int i = 0 ; i < 10 ; i++) {
+        std::cout << i << std::endl;
+    }
+    b.raw_dump();
 
     return 0;
 }
